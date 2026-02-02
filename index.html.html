@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Valentine Quest</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #ffe6e6; font-family: 'Arial', sans-serif; overflow: hidden; }
+        canvas { border: 4px solid #ff4d4d; background: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        #overlay { position: absolute; text-align: center; display: none; }
+        h1 { color: #ff4d4d; font-size: 3rem; text-shadow: 2px 2px #fff; }
+        .btn { padding: 15px 30px; font-size: 1.5rem; cursor: pointer; border: none; border-radius: 25px; transition: transform 0.2s; margin: 10px; }
+        #yesBtn { background: #ff4d4d; color: white; }
+        #yesBtn:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="overlay">
+        <h1>Will you be my Valentine? ❤️</h1>
+        <button id="yesBtn" class="btn" onclick="alert('Yay! Best day ever! ❤️')">YES!</button>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+
+canvas.width = 800;
+canvas.height = 400;
+
+// Game State
+let gameState = 'playing'; // 'playing', 'won'
+let score = 0;
+const winScore = 1500; // Distance to run to reach the end
+
+// Player Object
+const player = {
+    x: 50,
+    y: 300,
+    w: 40,
+    h: 40,
+    dy: 0,
+    jumpForce: 12,
+    gravity: 0.6,
+    grounded: false
+};
+
+// Obstacles
+const obstacles = [];
+let spawnTimer = 0;
+
+function spawnObstacle() {
+    const size = 30 + Math.random() * 20;
+    obstacles.push({
+        x: canvas.width,
+        y: 340 - size,
+        w: size,
+        h: size,
+        speed: 5 + (score / 500) // Gradually speeds up
+    });
+}
+
+function update() {
+    if (gameState !== 'playing') return;
+
+    // Physics
+    player.dy += player.gravity;
+    player.y += player.dy;
+
+    if (player.y > 300) {
+        player.y = 300;
+        player.dy = 0;
+        player.grounded = true;
+    }
+
+    // Score / Progress
+    score += 2;
+    if (score >= winScore) {
+        gameState = 'won';
+        overlay.style.display = 'block';
+    }
+
+    // Obstacle Logic
+    spawnTimer++;
+    if (spawnTimer > 70 + Math.random() * 50) {
+        spawnObstacle();
+        spawnTimer = 0;
+    }
+
+    obstacles.forEach((obs, index) => {
+        obs.x -= obs.speed;
+        
+        // Collision Detection
+        if (player.x < obs.x + obs.w &&
+            player.x + player.w > obs.x &&
+            player.y < obs.y + obs.h &&
+            player.y + player.h > obs.y) {
+            // Reset on hit
+            score = 0;
+            obstacles.length = 0;
+        }
+
+        if (obs.x + obs.w < 0) obstacles.splice(index, 1);
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Ground
+    ctx.strokeStyle = '#ffb3b3';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 340);
+    ctx.lineTo(800, 340);
+    ctx.stroke();
+
+    // Draw Player (A Pink Heart-Square)
+    ctx.fillStyle = '#ff4d4d';
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = 'white';
+    ctx.fillText("❤️", player.x + 10, player.y + 25);
+
+    // Draw Obstacles (Spikes/Blocks)
+    ctx.fillStyle = '#555';
+    obstacles.forEach(obs => {
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+    });
+
+    // Draw Progress Bar
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(200, 20, 400, 10);
+    ctx.fillStyle = '#ff4d4d';
+    ctx.fillRect(200, 20, (score/winScore) * 400, 10);
+
+    requestAnimationFrame(() => {
+        update();
+        draw();
+    });
+}
+
+// Controls
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && player.grounded) {
+        player.dy = -player.jumpForce;
+        player.grounded = false;
+    }
+});
+
+// Start
+draw();
+</script>
+</body>
+</html>
