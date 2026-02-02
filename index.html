@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Valentine Quest</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #ffe6e6;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        canvas {
+            border: 4px solid #ff4d4d;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        #overlay {
+            position: absolute;
+            text-align: center;
+            display: none;
+        }
+
+        h1 {
+            color: #ff4d4d;
+            font-size: 3rem;
+            text-shadow: 2px 2px #fff;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 25px;
+            margin: 10px;
+        }
+
+        #yesBtn {
+            background: #ff4d4d;
+            color: white;
+        }
+
+        #jumpBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #ff4d4d;
+            color: white;
+            font-size: 20px;
+            border: none;
+            opacity: 0.85;
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<button id="jumpBtn">JUMP</button>
+
+<div id="overlay">
+    <h1>Will you be my Valentine? ❤️</h1>
+    <button id="yesBtn" class="btn" onclick="alert('Yay! Best day ever! ❤️')">YES!</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const jumpBtn = document.getElementById("jumpBtn");
+
+canvas.width = 800;
+canvas.height = 400;
+
+let gameState = 'playing';
+let score = 0;
+const winScore = 1500;
+
+const player = {
+    x: 50,
+    y: 300,
+    w: 40,
+    h: 40,
+    dy: 0,
+    jumpForce: 12,
+    gravity: 0.6,
+    grounded: false
+};
+
+const obstacles = [];
+let spawnTimer = 0;
+
+function spawnObstacle() {
+    const size = 30 + Math.random() * 20;
+    obstacles.push({
+        x: canvas.width,
+        y: 340 - size,
+        w: size,
+        h: size,
+        speed: 5 + (score / 500)
+    });
+}
+
+function jump() {
+    if (player.grounded) {
+        player.dy = -player.jumpForce;
+        player.grounded = false;
+    }
+}
+
+function update() {
+    if (gameState !== 'playing') return;
+
+    player.dy += player.gravity;
+    player.y += player.dy;
+
+    if (player.y > 300) {
+        player.y = 300;
+        player.dy = 0;
+        player.grounded = true;
+    }
+
+    score += 2;
+
+    if (score >= winScore) {
+        gameState = 'won';
+        overlay.style.display = 'block';
+    }
+
+    spawnTimer++;
+
+    if (spawnTimer > 70 + Math.random() * 50) {
+        spawnObstacle();
+        spawnTimer = 0;
+    }
+
+    obstacles.forEach((obs, index) => {
+        obs.x -= obs.speed;
+
+        if (
+            player.x < obs.x + obs.w &&
+            player.x + player.w > obs.x &&
+            player.y < obs.y + obs.h &&
+            player.y + player.h > obs.y
+        ) {
+            score = 0;
+            obstacles.length = 0;
+        }
+
+        if (obs.x + obs.w < 0) obstacles.splice(index, 1);
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#ffb3b3';
+    ctx.beginPath();
+    ctx.moveTo(0, 340);
+    ctx.lineTo(800, 340);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ff4d4d';
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillText("❤️", player.x + 10, player.y + 25);
+
+    ctx.fillStyle = '#555';
+    obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.w, obs.h));
+
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(200, 20, 400, 10);
+
+    ctx.fillStyle = '#ff4d4d';
+    ctx.fillRect(200, 20, (score / winScore) * 400, 10);
+
+    requestAnimationFrame(() => {
+        update();
+        draw();
+    });
+}
+
+window.addEventListener('keydown', e => {
+    if (e.code === 'Space') jump();
+});
+
+jumpBtn.addEventListener("touchstart", jump);
+jumpBtn.addEventListener("click", jump);
+
+draw();
+</script>
+
+</body>
+</html>
